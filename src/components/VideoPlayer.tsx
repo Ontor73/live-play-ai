@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Volume2, Maximize, SkipBack } from 'lucide-react';
+import { Play, Pause, Volume2, Maximize, SkipBack, AlertCircle, RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface VideoPlayerProps {
   src: string;
@@ -17,61 +18,144 @@ export const VideoPlayer = ({ src, onTimeUpdate, seekTo }: VideoPlayerProps) => 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!videoRef.current || !src) return;
 
     const video = videoRef.current;
+    setHasError(false);
+    setErrorMessage('');
+    setIsLoading(true);
 
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 90,
-        maxBufferLength: 60,
-        maxMaxBufferLength: 120,
-        xhrSetup: (xhr, url) => {
-          // Add headers to help with CORS
-          xhr.setRequestHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-        }
-      });
-      
-      hlsRef.current = hls;
-      hls.loadSource(src);
-      hls.attachMedia(video);
-      
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('HLS stream loaded successfully');
-      });
+    console.log('Loading stream:', src);
 
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        console.error('HLS error:', data);
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log('Fatal network error encountered, trying to recover...');
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.log('Fatal media error encountered, trying to recover...');
-              hls.recoverMediaError();
-              break;
-            default:
-              console.log('Fatal error, cannot recover');
-              hls.destroy();
-              // Try direct video src as fallback
-              if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = src;
+    // Try multiple approaches for different stream types
+    const loadStream = async () => {
+      try {
+        // Method 1: Try HLS.js first
+        if (Hls.isSupported()) {
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 30,
+            maxBufferLength: 60,
+            maxMaxBufferLength: 120,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 10,
+            xhrSetup: (xhr, url) => {
+              xhr.setRequestHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+              xhr.setRequestHeader('Referer', 'https://www.sonyliv.com/');
+              xhr.timeout = 10000;
+            }
+          });
+          
+          hlsRef.current = hls;
+          
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            console.log('HLS stream loaded successfully');
+            setIsLoading(false);
+            setHasError(false);
+          });
+
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            console.error('HLS error:', data);
+            
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.log('Fatal network error, trying to recover...');
+                  setErrorMessage('Network error, attempting recovery...');
+                  setTimeout(() => {
+                    if (hlsRef.current) {
+                      hlsRef.current.startLoad();
+                    }
+                  }, 1000);
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.log('Fatal media error, trying to recover...');
+                  setErrorMessage('Media error, attempting recovery...');
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  console.log('Fatal error, cannot recover:', data);
+                  setHasError(true);
+                  setErrorMessage(`Stream error: ${data.details}`);
+                  setIsLoading(false);
+                  
+                  // Try fallback methods
+                  tryFallbackMethods();
+                  break;
               }
-              break;
-          }
+            }
+          });
+
+          hls.loadSource(src);
+          hls.attachMedia(video);
+          
+        } else {
+          // Method 2: Native browser support
+          tryNativePlayback();
         }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = src;
-    } else {
-      console.error('HLS is not supported in this browser');
-    }
+      } catch (error) {
+        console.error('Error loading stream:', error);
+        tryFallbackMethods();
+      }
+    };
+
+    const tryNativePlayback = () => {
+      console.log('Trying native video playback...');
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = src;
+        video.load();
+        setIsLoading(false);
+      } else {
+        tryFallbackMethods();
+      }
+    };
+
+    const tryFallbackMethods = () => {
+      console.log('Trying fallback methods...');
+      setErrorMessage('Trying alternative playback methods...');
+      
+      // Method 3: Try with different CORS settings
+      const corsProxy = `https://cors-anywhere.herokuapp.com/${src}`;
+      
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = corsProxy;
+        video.load();
+      } else {
+        // Method 4: Direct URL without proxy
+        video.src = src;
+        video.load();
+      }
+      
+      setIsLoading(false);
+    };
+
+    // Handle video events
+    video.addEventListener('loadstart', () => {
+      console.log('Video load started');
+      setIsLoading(true);
+    });
+
+    video.addEventListener('canplay', () => {
+      console.log('Video can play');
+      setIsLoading(false);
+      setHasError(false);
+    });
+
+    video.addEventListener('error', (e) => {
+      console.error('Video error:', e);
+      setHasError(true);
+      setErrorMessage('Failed to load video stream');
+      setIsLoading(false);
+    });
+
+    loadStream();
 
     return () => {
       if (hlsRef.current) {
@@ -130,6 +214,20 @@ export const VideoPlayer = ({ src, onTimeUpdate, seekTo }: VideoPlayerProps) => 
     }
   };
 
+  const retryStream = () => {
+    setHasError(false);
+    setErrorMessage('');
+    // Trigger a re-render to retry loading
+    const currentSrc = src;
+    if (videoRef.current) {
+      videoRef.current.src = '';
+      setTimeout(() => {
+        // Re-trigger the useEffect
+        window.location.reload();
+      }, 100);
+    }
+  };
+
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
@@ -149,7 +247,40 @@ export const VideoPlayer = ({ src, onTimeUpdate, seekTo }: VideoPlayerProps) => 
         onLoadedMetadata={handleLoadedMetadata}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
+        crossOrigin="anonymous"
+        playsInline
+        controls={false}
       />
+      
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-video-bg/90 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sports-primary mx-auto mb-4"></div>
+            <p className="text-white">Loading stream...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Overlay */}
+      {hasError && (
+        <div className="absolute inset-0 bg-video-bg/90 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
+            <div>
+              <h3 className="text-xl font-semibold text-white mb-2">Stream Error</h3>
+              <p className="text-red-400 mb-4">{errorMessage}</p>
+              <Button
+                onClick={retryStream}
+                className="bg-sports-primary hover:bg-sports-primary-glow text-white"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry Stream
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Video Controls Overlay */}
       <div className={`absolute inset-0 bg-video-overlay transition-opacity duration-300 ${

@@ -1,18 +1,24 @@
 import { useState } from 'react';
 import { VideoPlayer } from '@/components/VideoPlayer';
+import { IframePlayer } from '@/components/IframePlayer';
 import { CommentaryPanel } from '@/components/CommentaryPanel';
 import { HighlightsSection } from '@/components/HighlightsSection';
 import { StreamUrlInput } from '@/components/StreamUrlInput';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Index = () => {
   const [streamUrl, setStreamUrl] = useState<string>('');
+  const [streamTitle, setStreamTitle] = useState<string>('');
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [seekTo, setSeekTo] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
+  const [playerType, setPlayerType] = useState<'native' | 'iframe'>('native');
 
-  const handleStreamLoad = (url: string) => {
+  const handleStreamLoad = (url: string, title: string = '') => {
     setIsLoading(true);
     setStreamUrl(url);
+    setStreamTitle(title);
     // Simulate loading time
     setTimeout(() => setIsLoading(false), 1000);
   };
@@ -46,11 +52,36 @@ const Index = () => {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Video Player - Takes up 3/4 of the width on large screens */}
               <div className="lg:col-span-3 space-y-4">
-                <VideoPlayer
-                  src={streamUrl}
-                  onTimeUpdate={setCurrentTime}
-                  seekTo={seekTo}
-                />
+                <Tabs value={playerType} onValueChange={(value) => setPlayerType(value as 'native' | 'iframe')}>
+                  <div className="flex items-center justify-between mb-4">
+                    <TabsList>
+                      <TabsTrigger value="native">Native Player</TabsTrigger>
+                      <TabsTrigger value="iframe">Alternative Player</TabsTrigger>
+                    </TabsList>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(streamUrl, '_blank')}
+                    >
+                      Open in New Tab
+                    </Button>
+                  </div>
+                  
+                  <TabsContent value="native">
+                    <VideoPlayer
+                      src={streamUrl}
+                      onTimeUpdate={setCurrentTime}
+                      seekTo={seekTo}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="iframe">
+                    <IframePlayer
+                      src={streamUrl}
+                      title={streamTitle || 'Live Stream'}
+                    />
+                  </TabsContent>
+                </Tabs>
                 
                 {/* Stream Controls */}
                 <div className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border/50">

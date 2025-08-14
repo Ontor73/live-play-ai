@@ -18,7 +18,7 @@ interface StreamData {
 }
 
 interface StreamUrlInputProps {
-  onStreamLoad: (url: string) => void;
+  onStreamLoad: (url: string, title?: string) => void;
   isLoading: boolean;
 }
 
@@ -98,12 +98,12 @@ export const StreamUrlInput = ({ onStreamLoad, isLoading }: StreamUrlInputProps)
       return;
     }
 
-    onStreamLoad(url);
+    onStreamLoad(url, '');
   };
 
-  const handleQuickLoad = (url: string) => {
+  const handleQuickLoad = (url: string, title: string = '') => {
     setSelectedStream(url);
-    onStreamLoad(url);
+    onStreamLoad(url, title);
   };
 
   return (
@@ -134,7 +134,7 @@ export const StreamUrlInput = ({ onStreamLoad, isLoading }: StreamUrlInputProps)
                 <Card
                   key={stream.id}
                   className="cursor-pointer hover:border-sports-primary/50 transition-all duration-300 overflow-hidden group bg-card/50"
-                  onClick={() => handleQuickLoad(stream.url)}
+                  onClick={() => handleQuickLoad(stream.url, stream.title)}
                 >
                   <div className="relative">
                     {stream.image && (
