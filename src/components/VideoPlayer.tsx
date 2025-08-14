@@ -27,7 +27,13 @@ export const VideoPlayer = ({ src, onTimeUpdate, seekTo }: VideoPlayerProps) => 
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 90
+        backBufferLength: 90,
+        maxBufferLength: 60,
+        maxMaxBufferLength: 120,
+        xhrSetup: (xhr, url) => {
+          // Add headers to help with CORS
+          xhr.setRequestHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+        }
       });
       
       hlsRef.current = hls;
@@ -40,9 +46,31 @@ export const VideoPlayer = ({ src, onTimeUpdate, seekTo }: VideoPlayerProps) => 
 
       hls.on(Hls.Events.ERROR, (event, data) => {
         console.error('HLS error:', data);
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log('Fatal network error encountered, trying to recover...');
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log('Fatal media error encountered, trying to recover...');
+              hls.recoverMediaError();
+              break;
+            default:
+              console.log('Fatal error, cannot recover');
+              hls.destroy();
+              // Try direct video src as fallback
+              if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = src;
+              }
+              break;
+          }
+        }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
+    } else {
+      console.error('HLS is not supported in this browser');
     }
 
     return () => {
