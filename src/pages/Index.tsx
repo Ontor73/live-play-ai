@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { IframePlayer } from '@/components/IframePlayer';
+import { NSPlayer } from '@/components/NSPlayer';
 import { CommentaryPanel } from '@/components/CommentaryPanel';
 import { HighlightsSection } from '@/components/HighlightsSection';
 import { StreamUrlInput } from '@/components/StreamUrlInput';
@@ -13,7 +14,7 @@ const Index = () => {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [seekTo, setSeekTo] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
-  const [playerType, setPlayerType] = useState<'native' | 'iframe'>('native');
+  const [playerType, setPlayerType] = useState<'nsplayer' | 'native' | 'iframe'>('nsplayer');
 
   const handleStreamLoad = (url: string, title: string = '') => {
     setIsLoading(true);
@@ -52,9 +53,10 @@ const Index = () => {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Video Player - Takes up 3/4 of the width on large screens */}
               <div className="lg:col-span-3 space-y-4">
-                <Tabs value={playerType} onValueChange={(value) => setPlayerType(value as 'native' | 'iframe')}>
+                <Tabs value={playerType} onValueChange={(value) => setPlayerType(value as 'nsplayer' | 'native' | 'iframe')}>
                   <div className="flex items-center justify-between mb-4">
-                    <TabsList>
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="nsplayer">NS Player</TabsTrigger>
                       <TabsTrigger value="native">Native Player</TabsTrigger>
                       <TabsTrigger value="iframe">Alternative Player</TabsTrigger>
                     </TabsList>
@@ -66,6 +68,15 @@ const Index = () => {
                       Open in New Tab
                     </Button>
                   </div>
+                  
+                  <TabsContent value="nsplayer">
+                    <NSPlayer
+                      src={streamUrl}
+                      title={streamTitle || 'Live Stream'}
+                      onTimeUpdate={setCurrentTime}
+                      seekTo={seekTo}
+                    />
+                  </TabsContent>
                   
                   <TabsContent value="native">
                     <VideoPlayer
