@@ -321,11 +321,7 @@ export const NSPlayer = ({ src, title, onTimeUpdate, seekTo }: NSPlayerProps) =>
         </div>
       </div>
 
-      <div 
-        className="relative bg-black group"
-        onMouseEnter={() => setShowControls(true)}
-        onMouseLeave={() => setShowControls(false)}
-      >
+      <div className="relative bg-black">
         <video
           ref={videoRef}
           className="w-full aspect-video"
@@ -335,15 +331,15 @@ export const NSPlayer = ({ src, title, onTimeUpdate, seekTo }: NSPlayerProps) =>
           onPause={() => setIsPlaying(false)}
           crossOrigin="anonymous"
           playsInline
-          controls={false}
+          controls={true}
         />
         
         {/* Loading Overlay */}
         {isLoading && (
           <div className="absolute inset-0 bg-black/90 flex items-center justify-center">
             <div className="text-center text-white">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p>Connecting with {connectionMethods.find(m => m.id === connectionMethod)?.name}...</p>
+              <div className="rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Loading stream...</p>
             </div>
           </div>
         )}
@@ -367,119 +363,11 @@ export const NSPlayer = ({ src, title, onTimeUpdate, seekTo }: NSPlayerProps) =>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Retry
                   </Button>
-                  <Button
-                    onClick={() => {
-                      const nextIndex = (connectionMethods.findIndex(m => m.id === connectionMethod) + 1) % connectionMethods.length;
-                      setConnectionMethod(connectionMethods[nextIndex].id);
-                    }}
-                    variant="outline"
-                  >
-                    Try Next Method
-                  </Button>
                 </div>
               </div>
             </div>
           </div>
         )}
-        
-        {/* Video Controls */}
-        <div className={`absolute inset-0 bg-gradient-to-t from-black/60 to-transparent transition-opacity duration-300 ${
-          showControls ? 'opacity-100' : 'opacity-0'
-        }`}>
-          {/* Center Play Button */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={togglePlay}
-              className="bg-black/50 hover:bg-black/70 text-white border-none backdrop-blur-sm"
-            >
-              {isPlaying ? (
-                <Pause className="h-12 w-12" />
-              ) : (
-                <Play className="h-12 w-12 ml-1" />
-              )}
-            </Button>
-          </div>
-
-          {/* Bottom Controls */}
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            {/* Progress Bar */}
-            <div className="mb-4">
-              <input
-                type="range"
-                min="0"
-                max={duration || 0}
-                value={currentTime}
-                onChange={(e) => {
-                  if (videoRef.current) {
-                    videoRef.current.currentTime = parseFloat(e.target.value);
-                  }
-                }}
-                className="w-full h-1 bg-white/30 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
-
-            {/* Control Buttons */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={togglePlay}
-                  className="text-white hover:text-primary"
-                >
-                  {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    if (videoRef.current) {
-                      videoRef.current.currentTime = Math.max(0, currentTime - 10);
-                    }
-                  }}
-                  className="text-white hover:text-primary"
-                >
-                  <SkipBack className="h-5 w-5" />
-                </Button>
-
-                <div className="flex items-center space-x-2">
-                  <Volume2 className="h-5 w-5 text-white" />
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={volume}
-                    onChange={(e) => {
-                      const newVolume = parseFloat(e.target.value);
-                      setVolume(newVolume);
-                      if (videoRef.current) {
-                        videoRef.current.volume = newVolume;
-                      }
-                    }}
-                    className="w-20 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer"
-                  />
-                </div>
-
-                <span className="text-white text-sm">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </span>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleFullscreen}
-                className="text-white hover:text-primary"
-              >
-                <Maximize className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
       </div>
     </Card>
   );
