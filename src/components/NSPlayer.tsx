@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Play, Pause, Volume2, Maximize, SkipBack, AlertCircle, RefreshCw, ExternalLink, Info, Settings } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+
 
 interface NSPlayerProps {
   src: string;
@@ -25,7 +25,7 @@ export const NSPlayer = ({ src, title, onTimeUpdate, seekTo }: NSPlayerProps) =>
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [connectionMethod, setConnectionMethod] = useState('direct');
-  const { toast } = useToast();
+  
 
   // NS Player inspired connection methods
   const connectionMethods = [
@@ -172,10 +172,6 @@ export const NSPlayer = ({ src, title, onTimeUpdate, seekTo }: NSPlayerProps) =>
       
       if (nextIndex !== currentIndex) {
         setConnectionMethod(connectionMethods[nextIndex].id);
-        toast({
-          title: "Switching Connection Method",
-          description: `Trying ${connectionMethods[nextIndex].name}...`,
-        });
       } else {
         setHasError(true);
         setErrorMessage('All connection methods failed');
@@ -206,11 +202,6 @@ export const NSPlayer = ({ src, title, onTimeUpdate, seekTo }: NSPlayerProps) =>
     } else {
       videoRef.current.play().catch(error => {
         console.error('Play failed:', error);
-        toast({
-          title: "Playback Error",
-          description: "Failed to start playback. Try a different connection method.",
-          variant: "destructive"
-        });
       });
     }
     setIsPlaying(!isPlaying);
