@@ -73,7 +73,7 @@ const Index = () => {
                 {/* Stream Controls */}
                 <div className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border/50">
                   <div className="flex items-center space-x-3">
-                    <div className="h-3 w-3 bg-sports-primary rounded-full"></div>
+                    <div className="h-3 w-3 bg-sports-primary rounded-full animate-pulse-glow"></div>
                     <span className="font-medium text-foreground">Live Stream Active</span>
                   </div>
                   <button
