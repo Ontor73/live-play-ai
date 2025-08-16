@@ -85,11 +85,11 @@ export const NSPlayer = ({ src, title, onTimeUpdate, seekTo }: NSPlayerProps) =>
         // Create a new blob URL with custom headers simulation
         const proxyUrl = createProxyUrl(src, method?.headers || {});
         
-        // Try multiple approaches like NS Player does
-        if (connectionMethod === 'hls') {
-          await loadWithHLS(proxyUrl);
+        // Always try HLS first for m3u8 streams
+        if (src.includes('.m3u8')) {
+          await loadWithHLS(src);
         } else {
-          await loadWithNative(proxyUrl);
+          await loadWithNative(src);
         }
         
       } catch (error) {
@@ -101,15 +101,8 @@ export const NSPlayer = ({ src, title, onTimeUpdate, seekTo }: NSPlayerProps) =>
     };
 
     const createProxyUrl = (url: string, headers: Record<string, string>) => {
-      // For demo purposes, we'll use different proxy services
-      const proxies = [
-        `https://cors-anywhere.herokuapp.com/${url}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        url // Direct as fallback
-      ];
-      
-      return proxies[Math.floor(Math.random() * proxies.length)];
+      // Try direct connection first for HLS streams
+      return url;
     };
 
     const loadWithHLS = async (url: string) => {
